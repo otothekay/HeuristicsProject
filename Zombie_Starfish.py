@@ -6,7 +6,7 @@ from py2opt_github import CustomRouteFinder
 import time
 
 tsp_lab_data = pd.read_excel('Lab Data.xlsx', index_col=None)
-lab_data_optimal = 160
+lab_data_optimal = 211
 
 tsp_data_bays29 = pd.read_excel("Bays29.xlsx", index_col=None)
 tsp_data_bays29_optimal = 2020
@@ -58,6 +58,13 @@ class ZombieStarfish:
 
         self.best_solution = None
         self.best_tour = None
+
+        self.event_log = dict()
+        self.event_log['generation'] = list()
+        self.event_log['time'] = list()
+        self.event_log['current_optimal'] = list()
+        self.event_log['optimality_gap'] = list()
+
 
     def chop_up_starfish(self):
 
@@ -114,6 +121,7 @@ class ZombieStarfish:
         This starfish is then saved to ranked population dict, where the key is the score and value is the tour."""
 
         new_starfish, new_starfish_length = self.GRASPY_nearest_neighbor_TSP(limb)
+
         if cost not in self.ranked_population_dict.keys():
             self.ranked_population_dict.update({float(f'{new_starfish_length}'): new_starfish})
         else:
@@ -167,6 +175,8 @@ class ZombieStarfish:
         Perhaps use lack of improvement as a criteria instead?
         """
         sorted_keys = sorted(self.ranked_population_dict.keys(), reverse=False)
+        self.time_now = time.time()
+        current_run_time = self.time_now - self.start_time
 
         # Max Gens
         if self.current_gen == self.max_gens:
@@ -183,20 +193,28 @@ class ZombieStarfish:
             print(f'current optimality gap is {optimality_gap}')
 
         # Time Out
-
-        self.time_now = time.time()
-        current_run_time = self.time_now - self.start_time
-        if current_run_time >= self.max_time * 60:
+        elif current_run_time >= self.max_time * 60:
             self.unsolved = False
             self.report_solution()
             print('run timed out')
 
         # Found best tour
-        sorted_keys = sorted(self.ranked_population_dict.keys(), reverse=False)
-        if sorted_keys[0] == self.optimal:
+        elif sorted_keys[0] == self.optimal:
             self.unsolved = False
             self.report_solution()
             print('found absolute best tour')
+
+        self.report_solution()
+
+    def report_solution(self):
+
+
+        sorted_keys = sorted(self.ranked_population_dict.keys(), reverse=False)
+
+
+        if self.best_solution is None:
+            self.best_solution = sorted_keys[0]
+            self.best_tour = self.ranked_population_dict[sorted_keys[0]]
 
             self.time_now = time.time()
             current_run_time = self.time_now - self.start_time
@@ -206,18 +224,11 @@ class ZombieStarfish:
             print(f'current best tour found is {self.ranked_population_dict[sorted_keys[0]]}')
             print(f'current best solution found at {current_run_time} seconds into run time')
             print(f'current optimality gap is {optimality_gap}')
+            print('')
+            self.log_events(current_run_time,
+                            current_optimal=self.best_solution,
+                            current_gap=optimality_gap)
 
-
-    def report_solution(self):
-
-        self.best_solution = None
-        self.best_tour = None
-        sorted_keys = sorted(self.ranked_population_dict.keys(), reverse=False)
-
-
-        if self.best_solution is None:
-            self.best_solution = sorted_keys[0]
-            self.best_tour = self.ranked_population_dict[sorted_keys[0]]
 
         elif sorted_keys[0] < self.best_solution:
             self.best_solution = sorted_keys[0]
@@ -231,6 +242,10 @@ class ZombieStarfish:
             print(f'current best tour found is {self.ranked_population_dict[sorted_keys[0]]}')
             print(f'current best solution found at {current_run_time} seconds into run time')
             print(f'current optimality gap is {optimality_gap}')
+            print('')
+            self.log_events(current_run_time,
+                            current_optimal=self.best_solution,
+                            current_gap=optimality_gap)
 
 
     def Unleash_Zombie_Starfish(self):
@@ -308,3 +323,11 @@ class ZombieStarfish:
         new_starfish_length += last_distance
 
         return new_starfish, new_starfish_length
+
+    def log_events(self, current_run_time, current_optimal, current_gap):
+
+        self.event_log['generation'].append(self.current_gen)
+        self.event_log['time'].append(current_run_time)
+        self.event_log['current_optimal'].append(current_optimal)
+        self.event_log['optimality_gap'].append(current_gap)
+
