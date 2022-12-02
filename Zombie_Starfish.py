@@ -5,15 +5,17 @@ import random
 from py2opt_github import CustomRouteFinder
 import time
 
+tsp_lab_data = pd.read_excel('Lab Data.xlsx', index_col=None)
+lab_data_optimal = 160
+
 tsp_data_bays29 = pd.read_excel("Bays29.xlsx", index_col=None)
 tsp_data_bays29_optimal = 2020
 
 tsp_data_eil51 = pd.read_excel("EIL51.xlsx", index_col=None)
 tsp_data_eil51_optimal = 426
 
-tsp_data_KroA100 = pd.read_excel("KroA.xlsx", index_col=None)
+tsp_data_KroA100 = pd.read_excel("KroA100.xlsx", index_col=None)
 tsp_data_KroA100_optimal = 21282
-
 
 
 class ZombieStarfish:
@@ -22,20 +24,24 @@ class ZombieStarfish:
                  legs_per_starfish,
                  maximum_population,
                  maximum_generations,
-                 tsp_data,
+                 max_time=10,                      # minutes
+                 tsp_data=tsp_data_bays29,
+                 test_optimal=tsp_data_bays29_optimal,
                  initial_starfish=None
                  ):
 
         self.limbs = legs_per_starfish
         self.max_pop = maximum_population
         self.max_gens = maximum_generations
+        self.max_time = max_time
         self.dist_matrix = tsp_data
-        #print(self.dist_matrix)
+        self.optimal = test_optimal
+        # print(self.dist_matrix)
         self.tsp_data = tsp_data
 
         self.starfish_population = []
         # create a random starfish
-        if initial_starfish == None:
+        if initial_starfish is None:
             # default to the city list
             self.initial_starfish = list(range(0, len(tsp_data[0])))
             random.shuffle(self.initial_starfish)
@@ -44,11 +50,14 @@ class ZombieStarfish:
 
         self.starfish_population.append(self.initial_starfish)
 
-        self.ranked_population_dict = dict()  #keys will be tour length, values will be the tour
+        self.ranked_population_dict = dict()  # keys will be tour length, values will be the tour
 
         self.starfish_limb_len = floor(len(self.dist_matrix[0]) / self.limbs)
 
         self.unsolved = True
+
+        self.best_solution = None
+        self.best_tour = None
 
     def chop_up_starfish(self):
 
@@ -84,20 +93,21 @@ class ZombieStarfish:
         # best_tour, cost = two_opt(new_starfish, self.dist_matrix)
 
         # PyPi 2-opt optimized code
-            # limit to 1000 swaps for time
         city_names = list(range(0, len(self.tsp_data[0])))
-        route_finder = CustomRouteFinder(self.dist_matrix, city_names, iterations=5, initial_route=new_starfish)
+        route_finder = CustomRouteFinder(self.dist_matrix, city_names, iterations=1, initial_route=new_starfish)
         cost, best_tour = route_finder.solve()
 
         # routefinder doesn't add last city to starting city distance so need to correct for that
-        cost = cost + self.dist_matrix.iloc[best_tour[0], best_tour[-1]]
+        last_leg = self.dist_matrix.iloc[best_tour[0], best_tour[-1]]
+        # print(last_leg)
+        cost = cost + last_leg
+        best_tour.append(best_tour[0])
 
         if cost not in self.ranked_population_dict.keys():
             self.ranked_population_dict.update({float(f'{int(cost)}'): best_tour})
         else:
             # if there is a tie, add a really small number so new result doesn't overwrite the previous result
             self.ranked_population_dict.update({float(f'{cost + 0.01*random.random()}'): best_tour})
-
 
     def other_limbs_starfish_construction(self, limb):
         """For all other limbs, build a graspy new starfish.
@@ -123,8 +133,11 @@ class ZombieStarfish:
         if len(self.ranked_population_dict.keys()) > self.max_pop:
             sorted_keys = sorted(self.ranked_population_dict.keys(), reverse=False)
             if len(sorted_keys) < 10:
-                print(sorted_keys)
-            else: print(sorted_keys[0:10])
+                #print(sorted_keys)
+                pass
+            else:
+                #print(sorted_keys[0:10])
+                pass
 
             # rebuild the population variable
             self.starfish_population = []
@@ -132,17 +145,18 @@ class ZombieStarfish:
                 starfish_to_add = self.ranked_population_dict[sorted_keys[rank_of_starfish]]
                 self.starfish_population.append(starfish_to_add)
 
-            print("The population has been culled")
+            #print("The population has been culled")
 
         else:
             sorted_keys = sorted(self.ranked_population_dict.keys(), reverse=False)
             if len(sorted_keys) < 10:
-                print(sorted_keys)
+                #print(sorted_keys)
+                pass
             else:
-                print(sorted_keys[0:10])
-            print("Population is still under max threshold")
+                #print(sorted_keys[0:10])
+                pass
 
-
+            # print("Population is still under max threshold")
 
     def check_stopping_criteria(self):
         """This class has 2 stopping criteria: Max generations ran and convergence in the algorithm.
@@ -152,43 +166,93 @@ class ZombieStarfish:
 
         Perhaps use lack of improvement as a criteria instead?
         """
+        sorted_keys = sorted(self.ranked_population_dict.keys(), reverse=False)
+
         # Max Gens
         if self.current_gen == self.max_gens:
             self.unsolved = False
             self.report_solution()
+            print('run hit max gens')
+            self.time_now = time.time()
+            current_run_time = self.time_now - self.start_time
+            optimality_gap = self.best_solution - self.optimal
+
+            print(f'current best value found is {sorted_keys[0]}')
+            print(f'current best tour found is {self.ranked_population_dict[sorted_keys[0]]}')
+            print(f'current best solution found at {current_run_time} seconds into run time')
+            print(f'current optimality gap is {optimality_gap}')
 
         # Time Out
 
-        # Found best tour
+        self.time_now = time.time()
+        current_run_time = self.time_now - self.start_time
+        if current_run_time >= self.max_time * 60:
+            self.unsolved = False
+            self.report_solution()
+            print('run timed out')
 
+        # Found best tour
+        sorted_keys = sorted(self.ranked_population_dict.keys(), reverse=False)
+        if sorted_keys[0] == self.optimal:
+            self.unsolved = False
+            self.report_solution()
+            print('found absolute best tour')
+
+            self.time_now = time.time()
+            current_run_time = self.time_now - self.start_time
+            optimality_gap = self.best_solution - self.optimal
+
+            print(f'current best value found is {sorted_keys[0]}')
+            print(f'current best tour found is {self.ranked_population_dict[sorted_keys[0]]}')
+            print(f'current best solution found at {current_run_time} seconds into run time')
+            print(f'current optimality gap is {optimality_gap}')
 
 
     def report_solution(self):
 
+        self.best_solution = None
+        self.best_tour = None
         sorted_keys = sorted(self.ranked_population_dict.keys(), reverse=False)
-        print(f'the best value found is {sorted_keys[0]}')
-        print(f'the best tour found is {self.ranked_population_dict[sorted_keys[0]]}')
+
+
+        if self.best_solution is None:
+            self.best_solution = sorted_keys[0]
+            self.best_tour = self.ranked_population_dict[sorted_keys[0]]
+
+        elif sorted_keys[0] < self.best_solution:
+            self.best_solution = sorted_keys[0]
+            self.best_tour = self.ranked_population_dict[sorted_keys[0]]
+
+            self.time_now = time.time()
+            current_run_time = self.time_now - self.start_time
+            optimality_gap = self.best_solution - self.optimal
+
+            print(f'current best value found is {sorted_keys[0]}')
+            print(f'current best tour found is {self.ranked_population_dict[sorted_keys[0]]}')
+            print(f'current best solution found at {current_run_time} seconds into run time')
+            print(f'current optimality gap is {optimality_gap}')
+
 
     def Unleash_Zombie_Starfish(self):
 
+        self.start_time = time.time()
         self.current_gen = 0
         # to enable testing
         self.unsolved = True
 
         while self.unsolved:
 
-            for starfish in self.starfish_population:
-                self.chop_up_starfish()
+            self.chop_up_starfish()
 
-                for limb_index in range(0, len(self.limb_list)):
+            for limb_index in range(0, len(self.limb_list)):
 
-                    # build first leg into starfish
-                    if limb_index % self.limbs == 0:
-                        self.first_limb_starfish_construction(self.limb_list[limb_index])
+                # build first leg into starfish
+                if limb_index % self.limbs == 0:
+                    self.first_limb_starfish_construction(self.limb_list[limb_index])
 
-                    # build 2-n legs into starfishes
-                    else:
-                        self.other_limbs_starfish_construction(self.limb_list[limb_index])
+                # build 2-n legs into starfishes
+                else:
+                    self.other_limbs_starfish_construction(self.limb_list[limb_index])
 
             self.report_new_starfish()
             self.cull_the_starfish_heard()
@@ -196,7 +260,6 @@ class ZombieStarfish:
 
             # increment the generation
             self.current_gen += 1
-
 
     def GRASPY_nearest_neighbor_TSP(self, starfish_limb):
         """
@@ -209,7 +272,7 @@ class ZombieStarfish:
         tour = starfish_limb
         starting_city = starfish_limb[0]
 
-        new_starfish = []
+        new_starfish = list()
         new_starfish.append(starfish_limb[0])
         new_starfish_length = 0
 
