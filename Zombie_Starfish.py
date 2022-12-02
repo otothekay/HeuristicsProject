@@ -3,9 +3,17 @@ import pandas as pd
 from math import floor
 import random
 from py2opt_github import CustomRouteFinder
+import time
 
-tsp_data_small = pd.read_excel("Lab Data.xlsx", index_col=None)
-tsp_data_large = pd.read_excel("EIL51.xlsx", index_col=None)
+tsp_data_bays29 = pd.read_excel("Bays29.xlsx", index_col=None)
+tsp_data_bays29_optimal = 2020
+
+tsp_data_eil51 = pd.read_excel("EIL51.xlsx", index_col=None)
+tsp_data_eil51_optimal = 426
+
+tsp_data_KroA100 = pd.read_excel("KroA.xlsx", index_col=None)
+tsp_data_KroA100_optimal = 21282
+
 
 
 class ZombieStarfish:
