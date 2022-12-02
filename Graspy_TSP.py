@@ -88,7 +88,7 @@ def two_opt(tour, tsp_data):
 
 def cost(tour, tsp_data):
     cost = 0
-    for i in range(0, len(tour) - 1):  # Python is 0 index and goes up to *but not including* last element in range
+    for i in range(0, len(tour)-1):  # Python is 0 index and goes up to *but not including* last element in range
         cost += tsp_data.iat[tour[i], tour[i + 1]]
     return cost
 

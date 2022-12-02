@@ -3,7 +3,7 @@
 
 # I'm customizing this to be able to receive an initial route
 
-import random2
+import random
 import time
 
 from py2opt.solver import Solver
