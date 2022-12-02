@@ -2,26 +2,28 @@ from Graspy_TSP import *
 import pandas as pd
 from math import floor
 import random
+from py2opt_github import CustomRouteFinder
+
+tsp_data_small = pd.read_excel("Lab Data.xlsx", index_col=None)
+tsp_data_large = pd.read_excel("EIL51.xlsx", index_col=None)
 
 
-tsp_data = pd.read_excel("Lab Data.xlsx", index_col=None)
-
-
-
-class ZombieStarfish():
+class ZombieStarfish:
 
     def __init__(self,
                  legs_per_starfish,
                  maximum_population,
                  maximum_generations,
                  tsp_data,
-                 initial_starfish= None
+                 initial_starfish=None
                  ):
 
         self.limbs = legs_per_starfish
         self.max_pop = maximum_population
         self.max_gens = maximum_generations
         self.dist_matrix = tsp_data
+        #print(self.dist_matrix)
+        self.tsp_data = tsp_data
 
         self.starfish_population = []
         # create a random starfish
@@ -69,12 +71,24 @@ class ZombieStarfish():
         """
 
         new_starfish, new_starfish_length = self.GRASPY_nearest_neighbor_TSP(limb)
-        best_tour, cost = two_opt(new_starfish, self.dist_matrix)
+
+        # non-optimized 2 opt from heuristics lab
+        # best_tour, cost = two_opt(new_starfish, self.dist_matrix)
+
+        # PyPi 2-opt optimized code
+            # limit to 1000 swaps for time
+        city_names = list(range(0, len(self.tsp_data[0])))
+        route_finder = CustomRouteFinder(self.dist_matrix, city_names, iterations=5, initial_route=new_starfish)
+        cost, best_tour = route_finder.solve()
+
+        # routefinder doesn't add last city to starting city distance so need to correct for that
+        cost = cost + self.dist_matrix.iloc[best_tour[0], best_tour[-1]]
+
         if cost not in self.ranked_population_dict.keys():
-            self.ranked_population_dict.update({f'{cost}': best_tour})
+            self.ranked_population_dict.update({float(f'{int(cost)}'): best_tour})
         else:
             # if there is a tie, add a really small number so new result doesn't overwrite the previous result
-            self.ranked_population_dict.update({f'{cost + 0.01*random.random()}': best_tour})
+            self.ranked_population_dict.update({float(f'{cost + 0.01*random.random()}'): best_tour})
 
 
     def other_limbs_starfish_construction(self, limb):
@@ -83,10 +97,10 @@ class ZombieStarfish():
 
         new_starfish, new_starfish_length = self.GRASPY_nearest_neighbor_TSP(limb)
         if cost not in self.ranked_population_dict.keys():
-            self.ranked_population_dict.update({f'{new_starfish_length}': new_starfish})
+            self.ranked_population_dict.update({float(f'{new_starfish_length}'): new_starfish})
         else:
             # if there is a tie, add a really small number so new result doesn't overwrite the previous result
-            self.ranked_population_dict.update({f'{new_starfish_length + 0.01 * random.random()}': new_starfish})
+            self.ranked_population_dict.update({float(f'{new_starfish_length + 0.1* random.random()}'): new_starfish})
 
     def report_new_starfish(self):
 
@@ -100,7 +114,9 @@ class ZombieStarfish():
 
         if len(self.ranked_population_dict.keys()) > self.max_pop:
             sorted_keys = sorted(self.ranked_population_dict.keys(), reverse=False)
-            print(sorted_keys[:10])
+            if len(sorted_keys) < 10:
+                print(sorted_keys)
+            else: print(sorted_keys[0:10])
 
             # rebuild the population variable
             self.starfish_population = []
@@ -111,7 +127,13 @@ class ZombieStarfish():
             print("The population has been culled")
 
         else:
+            sorted_keys = sorted(self.ranked_population_dict.keys(), reverse=False)
+            if len(sorted_keys) < 10:
+                print(sorted_keys)
+            else:
+                print(sorted_keys[0:10])
             print("Population is still under max threshold")
+
 
 
     def check_stopping_criteria(self):
@@ -127,7 +149,9 @@ class ZombieStarfish():
             self.unsolved = False
             self.report_solution()
 
-        # Convergence in the Algorithm
+        # Time Out
+
+        # Found best tour
 
 
 
@@ -151,7 +175,7 @@ class ZombieStarfish():
                 for limb_index in range(0, len(self.limb_list)):
 
                     # build first leg into starfish
-                    if limb_index % 5 == 0:
+                    if limb_index % self.limbs == 0:
                         self.first_limb_starfish_construction(self.limb_list[limb_index])
 
                     # build 2-n legs into starfishes
@@ -164,8 +188,6 @@ class ZombieStarfish():
 
             # increment the generation
             self.current_gen += 1
-
-
 
 
     def GRASPY_nearest_neighbor_TSP(self, starfish_limb):
@@ -186,7 +208,7 @@ class ZombieStarfish():
         for n in range(1, len(tour)):
             current_city = tour[n - 1]
             next_city = tour[n]
-            distance = tsp_data.iloc[current_city, next_city]
+            distance = self.dist_matrix.iloc[current_city, next_city]
             new_starfish_length += distance
             new_starfish.append(next_city)
 
@@ -198,19 +220,19 @@ class ZombieStarfish():
 
             # Look for nearest 3 neighbors out of valid cities
             best_city, next_best, third_best = next_city_to_add_GRASPY(valid_cities,
-                                                                       city_last_added, tsp_data)
+                                                                       city_last_added, self.dist_matrix)
 
             # Use Randomness to pick out of our top 3
             next_city = pick_a_city(best_city, next_best, third_best)
 
             # add the next city
             new_starfish.append(next_city)
-            distance = tsp_data.iloc[city_last_added, next_city]
+            distance = self.dist_matrix.iloc[city_last_added, next_city]
             city_last_added = next_city
             new_starfish_length += distance
 
         # add the final leg
-        last_distance = tsp_data.iloc[starting_city, city_last_added]
+        last_distance = self.dist_matrix.iloc[starting_city, city_last_added]
         tour.append(tour[0])
         new_starfish_length += last_distance
 
