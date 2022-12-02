@@ -9,7 +9,7 @@ runs_per_dataset = 3
 results_df = None
 filename = 'Firefly_Algorithm_run_data.csv'
 
-for index, (dataset, optimal_value) in enumerate(zip(datasets[:2], optimals[:2])):
+for index, (dataset, optimal_value) in enumerate(zip(datasets[:], optimals[:])):
     for run in range(0, runs_per_dataset):
         print('')
         print(f'Run {run} for dataset {index}')
