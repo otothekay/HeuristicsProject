@@ -15,8 +15,8 @@ for index, (dataset, optimal_value) in enumerate(zip(datasets[1:], optimals[1:])
 
         model = FireflyTSP(
             population_size=24,
-            maximum_generations=100,                 #max gens not built in yet
-            max_time=20,  # minutes                 #max_time not built in yet
+            maximum_generations=40,
+            max_time=20,  # minutes
             tsp_data=dataset,
             test_optimal=optimal_value,
                             )

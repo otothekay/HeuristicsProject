@@ -21,7 +21,7 @@ for index, (dataset, optimal_value) in enumerate(zip(datasets[1:], optimals[1:])
 
         model = ZombieStarfish(legs_per_starfish=5,
                                maximum_population=50,
-                               maximum_generations=100,
+                               maximum_generations=40,
                                max_time=20,                      #minutes
                                tsp_data=dataset,
                                test_optimal=optimal_value,
