@@ -167,12 +167,8 @@ class ZombieStarfish:
             # print("Population is still under max threshold")
 
     def check_stopping_criteria(self):
-        """This class has 2 stopping criteria: Max generations ran and convergence in the algorithm.
+        """This class has 2 stopping criteria: Max generations, Max Time, and Finding known best solution
 
-        Measuring Convergence is tricky because there are n identical tours for every unique tour
-        since starting pos doesn't matter.  Return to this later.
-
-        Perhaps use lack of improvement as a criteria instead?
         """
         sorted_keys = sorted(self.ranked_population_dict.keys(), reverse=False)
         self.time_now = time.time()

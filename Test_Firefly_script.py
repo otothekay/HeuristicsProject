@@ -1,30 +1,43 @@
 from FireflyTSP import *
-import pandas as pd
 from Zombie_Starfish import *
 
 datasets = [tsp_lab_data, tsp_data_bays29, tsp_data_eil51, tsp_data_KroA100]
 optimals = [lab_data_optimal, tsp_data_bays29_optimal, tsp_data_eil51_optimal, tsp_data_KroA100_optimal]
-runs_per_dataset = 3
+runs_per_dataset = 5
 
 results_df = None
 filename = 'Firefly_Algorithm_run_data.csv'
 
-for index, (dataset, optimal_value) in enumerate(zip(datasets[:], optimals[:])):
+for index, (dataset, optimal_value) in enumerate(zip(datasets[1:], optimals[1:])):
     for run in range(0, runs_per_dataset):
         print('')
         print(f'Run {run} for dataset {index}')
 
         model = FireflyTSP(
-            population_size=10,
-            gamma=1,                                #gamma not built in yet
-            maximum_generations=10,                 #max gens not built in yet
-            max_time=10,  # minutes                 #max_time not built in yet
+            population_size=24,
+            maximum_generations=100,                 #max gens not built in yet
+            max_time=20,  # minutes                 #max_time not built in yet
             tsp_data=dataset,
             test_optimal=optimal_value,
                             )
 
-        population, avg_cost, best_cost, best_solution = model.firefly_heuristic()
+        model.Unleash_Firefly()
+        event_data = model.event_log
+        event_data['index'] = [index] * len(event_data['time'])
+        event_data['run'] = [run] * len(event_data['time'])
 
-        print(population)
-        print(best_cost)
-        print(best_solution)
+        if results_df is None:
+            results_df = pd.DataFrame(columns=event_data.keys())
+
+            data_df = pd.DataFrame(data=event_data)
+            copy = results_df.copy()
+            results_df = pd.concat([copy, data_df], axis=0)
+
+        else:
+            data_df = pd.DataFrame(data=event_data)
+            copy = results_df.copy()
+            results_df = pd.concat([copy, data_df], axis=0)
+
+        print('')
+
+    results_df.to_csv(filename)

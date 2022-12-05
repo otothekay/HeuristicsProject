@@ -9,7 +9,7 @@ import pandas as pd
 # want to collect time found, generation found, optimality gap for each run
 datasets = [tsp_lab_data, tsp_data_bays29, tsp_data_eil51, tsp_data_KroA100]
 optimals = [lab_data_optimal, tsp_data_bays29_optimal, tsp_data_eil51_optimal, tsp_data_KroA100_optimal]
-runs_per_dataset = 3
+runs_per_dataset = 5
 
 results_df = None
 filename = 'Zombie_Starfish_run_data.csv'
@@ -21,7 +21,7 @@ for index, (dataset, optimal_value) in enumerate(zip(datasets[1:], optimals[1:])
 
         model = ZombieStarfish(legs_per_starfish=5,
                                maximum_population=50,
-                               maximum_generations=50,
+                               maximum_generations=100,
                                max_time=20,                      #minutes
                                tsp_data=dataset,
                                test_optimal=optimal_value,
