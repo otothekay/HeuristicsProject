@@ -32,7 +32,7 @@ class CustomRouteFinder:
             num_cities = len(self.distance_matrix)
             #print(round(elapsed_time), 'msec')
             if self.initial_route == None:
-                self.initial_route = [0] + random2.sample(range(1, num_cities), num_cities - 1)
+                self.initial_route = [0] + random.sample(range(1, num_cities), num_cities - 1)
             tsp = Solver(self.distance_matrix, self.initial_route)
             new_route, new_distance, distances = tsp.two_opt()
 
