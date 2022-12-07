@@ -1,5 +1,3 @@
-import pandas as pd
-
 from Zombie_Starfish import *
 import pandas as pd
 
